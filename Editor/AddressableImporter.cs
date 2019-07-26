@@ -6,15 +6,41 @@ using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Settings;
 using System;
 using System.IO;
+using UnityEditor.AddressableAssets.Settings.GroupSchemas;
 
 public class AddressableImporter : AssetPostprocessor
 {
+	public enum GroupSearchResult
+	{
+		Default = 0,
+		Found = 1,
+		NotFound = 2
+	}
+
+	static GroupSearchResult TryGetGroup(AddressableAssetSettings settings, string groupName, out AddressableAssetGroup group)
+	{
+		if (string.IsNullOrWhiteSpace(groupName))
+		{
+			group = settings.DefaultGroup;
+			return GroupSearchResult.Default;
+		}
+
+		return ((group = settings.groups.Find(g => string.Equals(g.Name, groupName.Trim()))) == null) ? GroupSearchResult.NotFound : GroupSearchResult.Found;
+	}
+
 	static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths)
 	{
 		var settings = AddressableAssetSettingsDefaultObject.Settings;
-		var importSettings = AddressableImportSettings.Instance;
-		if (importSettings == null || importSettings.rules == null || importSettings.rules.Count == 0)
+
+		AddressableImportSettings scriptable = ScriptableObject.CreateInstance<AddressableImportSettings>();
+
+		AddressableImportSettings importSettings;
+		scriptable.GetOrCreate(out importSettings);
+
+		if (importSettings.rules == null || importSettings.rules.Count == 0)
 			return;
+
+		// Handling imported assets
 		var entriesAdded = new List<AddressableAssetEntry>();
 		foreach (string path in importedAssets)
 		{
@@ -22,7 +48,7 @@ public class AddressableImporter : AssetPostprocessor
 			{
 				if (rule.Match(path))
 				{
-					var entry = CreateOrUpdateAddressableAssetEntry(settings, path, rule.groupName, rule.labels, rule.simplified);
+					var entry = CreateOrUpdateAddressableAssetEntry(settings, path, rule, importSettings);
 					if (entry != null)
 					{
 						entriesAdded.Add(entry);
@@ -41,42 +67,63 @@ public class AddressableImporter : AssetPostprocessor
 		}
 	}
 
-	static AddressableAssetEntry CreateOrUpdateAddressableAssetEntry(AddressableAssetSettings settings, string path, string groupName, IEnumerable<string> labels, bool simplified)
+	static AddressableAssetEntry CreateAddressableAsset(AddressableAssetSettings settings, string assetPath, AddressableAssetGroup group)
 	{
-		var group = GetGroup(settings, groupName);
-		if (group == null)
-		{
-			Debug.LogErrorFormat("[AddressableImporter] Failed to find group {0} when importing {1}. Please check the group exists, then reimport the asset.", groupName, path);
-			return null;
-		}
-		var guid = AssetDatabase.AssetPathToGUID(path);
-		var entry = settings.CreateOrMoveEntry(guid, group);
-		// Override address if address is a path
-		if (string.IsNullOrEmpty(entry.address) || entry.address.StartsWith("Assets/"))
-		{
-			if (simplified)
-				path = Path.GetFileNameWithoutExtension(path);
-			entry.address = path;
-		}
-		// Add labels
-		foreach (var label in labels)
-		{
-			if (!entry.labels.Contains(label))
-				entry.labels.Add(label);
-		}
-		return entry;
+		return settings.CreateOrMoveEntry(AssetDatabase.AssetPathToGUID(assetPath), group);
 	}
 
-	/// <summary>
-	/// Find asset group by given name. Return default group if given name is null.
-	/// </summary>
-	static AddressableAssetGroup GetGroup(AddressableAssetSettings settings, string groupName)
+	static void SimplifyAddresByPath(AddressableAssetEntry entry, string path)
 	{
-		if (groupName != null)
-			groupName.Trim();
-		if (string.IsNullOrEmpty(groupName))
-			return settings.DefaultGroup;
-		return settings.groups.Find(g => g.Name == groupName);
+		entry.address = Path.GetFileNameWithoutExtension(path);
+	}
+
+	static AddressableAssetGroup CreateAssetGroup<SchemaType>(AddressableAssetSettings settings, string groupName)
+	{
+		return settings.CreateGroup(groupName, false, false, false, new List<AddressableAssetGroupSchema> { settings.DefaultGroup.Schemas[0] }, typeof(SchemaType));
+	}
+
+	static AddressableAssetEntry CreateOrUpdateAddressableAssetEntry(
+		AddressableAssetSettings settings,
+		string path,
+		AddressableImportRule rule,
+		AddressableImportSettings importSettings)
+	{
+		AddressableAssetGroup group;
+		string groupName = importSettings.ParseGroupName(rule, path);
+
+		Debug.Log("Target Group Name: " + groupName);
+
+		if (TryGetGroup(settings, groupName, out group) == GroupSearchResult.NotFound)
+		{
+			if (importSettings.allowGroupCreation)
+			{
+				group = CreateAssetGroup<BundledAssetGroupSchema>(settings, groupName);
+			}
+			else
+			{
+				Debug.LogErrorFormat("[AddressableImporter] Failed to find group {0} when importing {1}. Please check the group exists, then reimport the asset.", groupName, path);
+				return null;
+			}
+		}
+
+		var assetEntry = CreateAddressableAsset(settings, path, group);
+
+		if (string.IsNullOrEmpty(assetEntry.address) && rule.simplified)
+		{
+			SimplifyAddresByPath(assetEntry, path);
+		}
+
+		// Remove Labels
+		assetEntry.labels.Clear();
+
+		// Add labels
+		foreach (var label in rule.labels)
+		{
+			if (!assetEntry.labels.Contains(label))
+				assetEntry.labels.Add(label);
+		}
+
+		return assetEntry;
 	}
 
 }

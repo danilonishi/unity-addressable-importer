@@ -1,10 +1,9 @@
 {
-    "name": "Unity.AddressableImporter.Editor",
+    "name": "INSANE.AddressableImporter.Editor",
     "references": [
         "Unity.Addressables",
         "Unity.Addressables.Editor"
     ],
-    "optionalUnityReferences": [],
     "includePlatforms": [
         "Editor"
     ],

@@ -33,12 +33,6 @@ public class AddressableImportRule
 	public AddressableImportRuleMatchType matchType;
 
 	/// <summary>
-	/// Addressable group name
-	/// </summary>
-	[Tooltip("Leaves blank for the default group.")]
-	public string groupName;
-
-	/// <summary>
 	/// Label reference list
 	/// </summary>
 	public List<AssetLabelReference> labelRefs;
@@ -55,6 +49,60 @@ public class AddressableImportRule
 		{
 			return labelRefs != null && labelRefs.Count > 0;
 		}
+	}
+
+	public const string cpath = "$PATH$";
+
+	public string[] GetPathArray(string path)
+	{
+		return path.Split('/');
+	}
+
+	public string GetPathAtArray(string path, int idx)
+	{
+		return GetPathArray(path)[idx];
+	}
+
+	public string TargetGroupName = "";
+
+	const string pathregex = @"\$PATH\$\[\d{1,3}\]";
+	public string ParsePath(string targetGroupName, string customPath = null)
+	{
+		var _path = path;
+		if (!string.IsNullOrWhiteSpace(customPath))
+		{
+			_path = customPath;
+		}
+
+		var slashSplit = _path.Split('/');
+		var splitpath = Regex.Split(targetGroupName, pathregex);
+		var matches = Regex.Matches(targetGroupName, pathregex);
+
+		string[] parsedMatches = new string[matches.Count];
+		int i = 0;
+		foreach (var match in matches)
+		{
+			string v = match.ToString();
+			var sidx = v.IndexOf('[') + 1;
+			var eidx = v.IndexOf(']');
+			int idx = int.Parse(v.Substring(sidx, eidx - sidx));
+			idx = Mathf.Clamp(idx, 0, slashSplit.Length - 1);
+			parsedMatches[i++] = GetPathAtArray(_path, idx);
+		}
+
+		i = 0;
+		string finalPath = string.Empty;
+		foreach (var split in splitpath)
+		{
+			finalPath += splitpath[i];
+			if (i < parsedMatches.Length)
+			{
+				finalPath += parsedMatches[i];
+			}
+			i++;
+		}
+
+		return finalPath;
 	}
 
 	/// <summary>
