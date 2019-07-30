@@ -65,6 +65,11 @@ public class AddressableImporter : AssetPostprocessor
 			settings.SetDirty(AddressableAssetSettings.ModificationEvent.EntryMoved, entriesAdded, true);
 			AssetDatabase.SaveAssets();
 		}
+
+		if (importSettings.removeEmtpyGroups)
+		{
+			settings.groups.RemoveAll(_ => _.entries.Count == 0);
+		}
 	}
 
 	static AddressableAssetEntry CreateAddressableAsset(AddressableAssetSettings settings, string assetPath, AddressableAssetGroup group)
