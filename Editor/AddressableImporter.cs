@@ -96,8 +96,6 @@ public class AddressableImporter : AssetPostprocessor
 		AddressableAssetGroup group;
 		string groupName = importSettings.ParseGroupName(rule, path);
 
-		Debug.Log("Target Group Name: " + groupName);
-
 		if (TryGetGroup(settings, groupName, out group) == GroupSearchResult.NotFound)
 		{
 			if (importSettings.allowGroupCreation)

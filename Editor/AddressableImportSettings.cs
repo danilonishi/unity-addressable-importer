@@ -35,23 +35,18 @@ public class AddressableImportSettings : ScriptableObject
 	{
 		AddressableImportSettings settingsFile;
 
-		Debug.Log("Trying to get from EditorBuildSettings");
 		if (EditorBuildSettings.TryGetConfigObject("AddressableImportSettings", out settingsFile))
 		{
-			Debug.Log("...found");
 			settings = settingsFile;
 			return true;
 		}
 
-		Debug.Log("Trying to get from AddressableImportSettings.asset");
 		if (settingsFile != null)
 		{
 			settings = AssetDatabase.LoadAssetAtPath<AddressableImportSettings>("Assets/AddressableAssetsData/AddressableImportSettings.asset");
-			Debug.Log("..." + ((settings != null) ? "found" : "not found"));
 			return (settings != null);
 		}
 
-		Debug.Log("Giving up.");
 		settings = default;
 		return false;
 	}
@@ -61,12 +56,9 @@ public class AddressableImportSettings : ScriptableObject
 	/// </summary>
 	public void Create(AddressableImportSettings settings)
 	{
-		Debug.Log("Creating Addressable Import Settings");
-		settings = CreateInstance<AddressableImportSettings>();//default;
+		settings = CreateInstance<AddressableImportSettings>();
 		AssetDatabase.CreateAsset(settings, "Assets/AddressableAssetsData/AddressableImportSettings.asset");
 		AssetDatabase.SaveAssets();
-
-		Debug.Log("Saving to EditorBuildSettings");
 
 		EditorBuildSettings.AddConfigObject("AddressableImportSettings", settings, true);
 		settings.rules = new List<AddressableImportRule>();
@@ -76,6 +68,7 @@ public class AddressableImportSettings : ScriptableObject
 	{
 		if (!TryGet(out settingsFile))
 		{
+			Debug.Log("Creating AddressableImportSettings");
 			Create(settingsFile);
 			return AddressableResult.Created;
 		}
