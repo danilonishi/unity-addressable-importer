@@ -106,9 +106,11 @@ public class AddressableImporter : AssetPostprocessor
 			}
 		}
 
+		
+
 		var assetEntry = CreateAddressableAsset(settings, path, group);
 
-		if (string.IsNullOrEmpty(assetEntry.address) && rule.simplified)
+		if (string.IsNullOrEmpty(assetEntry.address) && rule.Simplify)
 		{
 			SimplifyAddresByPath(assetEntry, path);
 		}
@@ -117,13 +119,14 @@ public class AddressableImporter : AssetPostprocessor
 		assetEntry.labels.Clear();
 
 		// Add labels
-		foreach (var label in rule.labels)
+		foreach (var label in rule.Labels)
 		{
 			if (!assetEntry.labels.Contains(label))
 				assetEntry.labels.Add(label);
 		}
 
 		return assetEntry;
+
 	}
 
 }
