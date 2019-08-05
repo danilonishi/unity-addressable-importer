@@ -113,7 +113,7 @@ public class AddressableImporter : AssetPostprocessor
 
 		var assetEntry = CreateAddressableAsset(settings, path, group);
 
-		if (string.IsNullOrEmpty(assetEntry.address) && rule.Simplify)
+		if (rule.Simplify && (string.IsNullOrEmpty(assetEntry.address) || assetEntry.address.StartsWith("Assets/")))
 		{
 			SimplifyAddresByPath(assetEntry, path);
 		}
