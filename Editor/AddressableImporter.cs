@@ -53,10 +53,6 @@ public class AddressableImporter : AssetPostprocessor
 					if (entry != null)
 					{
 						entriesAdded.Add(entry);
-						if (rule.HasLabel)
-							Debug.LogFormat("[AddressableImporter] Entry created for {0} with labels {1}", path, string.Join(", ", entry.labels));
-						else
-							Debug.LogFormat("[AddressableImporter] Entry created for {0}", path);
 					}
 				}
 			}
